@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora de Horas Noturnas</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f3f4f6; margin:0; padding:40px; }
+    .container { max-width:520px; margin:0 auto; background:#fff; border-radius:12px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    h1 { font-size:22px; margin-bottom:20px; }
+    label { display:block; margin-top:12px; font-size:14px; }
+    input { width:100%; padding:8px; margin-top:6px; border-radius:6px; border:1px solid #ccc; }
+    button { margin-top:20px; padding:10px; width:100%; background:#111827; color:#fff; border:0; border-radius:8px; cursor:pointer; }
+    .result { margin-top:20px; padding:12px; background:#f9fafb; border-radius:8px; }
+    .result div { margin:6px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Calculadora de Horas Noturnas</h1>
+    <form id="form">
+      <label>Início da jornada</label>
+      <input type="time" id="inicio" required>
+
+      <label>Fim da jornada</label>
+      <input type="time" id="fim" required>
+
+      <label>Intervalo (minutos)</label>
+      <input type="number" id="intervalo" min="0" value="0">
+
+      <label>Salário mensal (R$)</label>
+      <input type="number" id="salarioMensal" min="0" step="0.01" value="2200.00">
+
+      <button type="submit">Calcular</button>
+    </form>
+
+    <div id="resultado" class="result" style="display:none;"></div>
+  </div>
+
+<script>
+function calcular() {
+  const inicio = document.getElementById("inicio").value;
+  const fim = document.getElementById("fim").value;
+  const intervalo = parseInt(document.getElementById("intervalo").value) || 0;
+  const salarioMensal = parseFloat(document.getElementById("salarioMensal").value);
+
+  if (!inicio || !fim || !salarioMensal) return;
+
+  // Jornada padrão: 220h mensais (44h semanais)
+  const horasMensais = 220;
+  const valorHora = salarioMensal / horasMensais;
+
+  function paraMinutos(hora) {
+    const [h, m] = hora.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  let inicioMin = paraMinutos(inicio);
+  let fimMin = paraMinutos(fim);
+
+  if (fimMin <= inicioMin) fimMin += 24 * 60;
+
+  const duracao = fimMin - inicioMin - intervalo;
+
+  // Cálculo de minutos noturnos (22h às 5h)
+  let noturno = 0;
+  for (let t = inicioMin; t < fimMin; t++) {
+    const horaAtual = (t % (24*60)) / 60;
+    if (horaAtual >= 22 || horaAtual < 5) {
+      noturno++;
+    }
+  }
+
+  const horasLiquidas = duracao / 60;
+  const horasNoturnas = noturno / 60;
+  const percNoturno = ((horasNoturnas / horasLiquidas) * 100).toFixed(1);
+
+  // Adicional noturno padrão: 20%
+  const adicionalNoturno = 0.2;
+  const valorHorasNormais = (horasLiquidas - horasNoturnas) * valorHora;
+  const valorHorasNoturnas = horasNoturnas * valorHora * (1 + adicionalNoturno);
+  const valorTotal = valorHorasNormais + valorHorasNoturnas;
+
+  const div = document.getElementById("resultado");
+  div.style.display = "block";
+  div.innerHTML = `
+    <div><strong>Horas líquidas:</strong> ${horasLiquidas.toFixed(2)} h</div>
+    <div><strong>Horas noturnas:</strong> ${horasNoturnas.toFixed(2)} h</div>
+    <div><strong>Percentual noturno:</strong> ${percNoturno}%</div>
+    <hr>
+    <div><strong>Valor da hora (calculado):</strong> R$ ${valorHora.toFixed(2)}</div>
+    <div><strong>Valor horas normais:</strong> R$ ${valorHorasNormais.toFixed(2)}</div>
+    <div><strong>Valor horas noturnas:</strong> R$ ${valorHorasNoturnas.toFixed(2)}</div>
+    <div><strong>Total a receber:</strong> <span style="color:green;">R$ ${valorTotal.toFixed(2)}</span></div>
+  `;
+}
+
+document.getElementById("form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  calcular();
+});
+</script>
+</body>
+</html>
